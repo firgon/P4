@@ -1,20 +1,9 @@
-import Model
+from controller.controller import Controller, Action
+from views.consoleview import ConsoleView
 
-# premier_joueur = Model.Player("Albisser", "Emmanuel", "02/04/1980", Model.Player.MALE, 1500)
+# premier_joueur = Model.Player("Albisser",
 
-class PersonException(Exception):
-    pass
+# "Emmanuel", "02/04/1980", Model.Player.MALE, 1500)
 
-
-class InvalidDOBPersonException(PersonException):
-    pass
-
-
-try:
-    raise InvalidDOBPersonException("Invalid Date of Birth")
-except PersonException:
-    print("PersonException caught")
-except InvalidDOBPersonException("Invalid Date of Birth"):
-    print("InvalidDOBPersonException caught")
-except Exception:
-    print("Exception caught.")
+console = ConsoleView()
+controller = Controller(console)
