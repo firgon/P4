@@ -140,13 +140,29 @@ class Controller:
                           self.add_result,
                           self.automatic_result]
 
-        self.view.display_menu("Tournoi " + repr(self.active_tournament),
+        self.view.display_menu("Tournoi " + str(self.active_tournament),
                                choices,
                                functions_list)
 
     def add_result(self):
-        # lister les matchs et demander un résultat
-        pass
+        active_round = self.active_tournament.get_last_round()
+        if active_round.is_ended():
+            self.view.log("Il n'y a plus aucun match en cours.")
+        else:
+            self.view.display_item_choice("Quel résultat voulez-vous saisir ?",
+                                          active_round.matches,
+                                          self.ask_for_match_result)
+
+    def ask_for_match_result(self, match: Match):
+        self.view.display_form(match.get_infos(),
+                               self.modify_match)
+
+    def modify_match(self, datas):
+        match = datas[0]
+        print(datas)
+        match.set_score(datas[1], datas[2])
+
+        self.add_result()
 
     def automatic_result(self):
         pass
@@ -307,7 +323,7 @@ class Controller:
         player.sex = infos[3]
         player.elo = infos[4]
 
-        self.create_menu()
+        self.choose_player()
 
     def choose_tournament(self):
 
@@ -340,14 +356,66 @@ class Controller:
                                    ["Créer et ouvrir un tournoi",
                                     "Ouvrir un tournoi existant",
                                     "Créer un joueur",
-                                    "Modifier un joueur"],
+                                    "Modifier un joueur",
+                                    "Afficher des rapports"],
                                    [self.ask_for_tournament_datas,
                                     self.choose_tournament,
                                     self.ask_for_player_datas,
-                                    self.choose_player])
+                                    self.choose_player,
+                                    self.choose_report])
         elif self.active_player is None:
             self.create_tournament_menu()
 
+    def choose_report(self):
+        self.view.display_item_choice("Les rapports disponibles :",
+                                      ["Les acteurs par Nom",
+                                       "Les acteurs par Elo",
+                                       "Les tournois"],
+                                      self.create_report)
+
+    def create_report(self, choice: str):
+        if choice == "Les acteurs par Elo":
+            players = sorted(self.all_players,
+                             key=lambda x: x.elo,
+                             reverse=True)
+            players_dict = self.create_player_dict_list(players)
+            self.view.display_list(players_dict)
+        elif choice == "Les acteurs par Nom":
+            players = sorted(self.all_players,
+                             key=lambda x: x.family_name.title(),
+                             reverse=False)
+            players_dict = self.create_player_dict_list(players)
+            self.view.display_list(players_dict)
+        elif choice == "Les tournois":
+            tournaments_to_display = []
+
+            for index, tournament in enumerate(self.tournaments):
+                string_tournament = str(tournament)
+                string_tournament = string_tournament.replace("\n", " ")
+
+                tournament_to_display = {"N°": index + 1,
+                                         "Tournoi": string_tournament
+                                         }
+                tournaments_to_display.append(tournament_to_display)
+
+            self.view.display_list(tournaments_to_display)
+
+        self.choose_report()
+
+    def create_player_dict_list(self, players_list) -> list:
+        players_to_display = []
+
+        for index, player in enumerate(players_list):
+            player_to_display = {
+                "N°": index+1,
+                "Nom": repr(player),
+                "Date de naissance": player.birth_date.strftime('%d/%m/%y'),
+                "Sexe": player.get_sex(),
+                "Elo": player.elo
+            }
+            players_to_display.append(player_to_display)
+
+        return players_to_display
 
 class Action:
     """
@@ -376,6 +444,7 @@ class MultiChoiceAction(Action):
     """
 
     def __init__(self, label: list, callback):
+        super().__init__()
         if not isinstance(label, list):
             raise TypeError(f"{label} is not a list")
         if not isinstance(callback, types.FunctionType):
@@ -386,5 +455,5 @@ class MultiChoiceAction(Action):
     def __str__(self):
         return [self.label]
 
-    def act_with_arg(self, index: int):
+    def act(self, index: int):
         return self.callback(self.label[index])

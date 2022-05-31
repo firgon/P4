@@ -15,13 +15,17 @@ class Match(Serializable):
                + " Vs " \
                + str(self.match[1][self.PLAYER])
 
-    def set_score(self, player: Player, score: int):
-        if player in self.match[0]:
-            self.match[0][Match.SCORE] = score
-        elif player in self.match[1]:
-            self.match[1][Match.SCORE] = score
-        else:
-            print("Ce joueur ne participe pas à ce match !")
+    def set_score(self, score1: int, score2: int):
+        self.match[0][Match.SCORE] = score1
+        self.match[1][Match.SCORE] = score2
+
+    def get_infos(self):
+        """return a tuple with needed information to modify this Player"""
+        return ({'label': "instance de classe", 'type': self},
+                {'label': f"Score pour {self.match[0][Match.PLAYER]}",
+                    'type': int},
+                {'label': f"Score pour {self.match[1][Match.PLAYER]}",
+                 'type': int})
 
     def get_players(self):
         return self.match[0][self.PLAYER], self.match[1][self.PLAYER]
@@ -33,6 +37,9 @@ class Match(Serializable):
             return 1 - self.calculate_result()
         else:
             print("Ce joueur ne participe pas à ce match !")
+
+    def get_players(self):
+        return [self.match[0][Match.PLAYER], self.match[1][Match.PLAYER]]
 
     def calculate_result(self):
         """return 1 if player1 wins, 0 if player2 wins, 0.5 if tied"""

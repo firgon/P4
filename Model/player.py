@@ -44,10 +44,10 @@ class Player(Serializable):
         self.birth_date = birth_date
 
         # check if sex is valid value
-        if isinstance(sex, int) and sex in enumerate(Player.TUPLE_SEX):
+        if isinstance(sex, int) and sex in range(len(Player.TUPLE_SEX)):
             self.sex = sex
         else:
-            self.sex = Player.TUPLE_SEX[Player.DK]
+            self.sex = Player.DK
 
         self.elo = elo
 
@@ -66,16 +66,23 @@ class Player(Serializable):
         player.id_in_db = serialized_player.doc_id
         return player
 
+    def get_sex(self) -> str:
+        """return string corresponding to int sex attribute"""
+        return Player.TUPLE_SEX[self.sex]
+
     def get_infos(self):
         """return a tuple with needed information to modify this Player"""
         return ({'label': "instance de classe", 'type': self},
                 {'label': "Nom de famille", 'type': self.family_name},
                 {'label': "Prénom", 'type': self.first_name},
                 {'label': "Sexe", 'type': Player.TUPLE_SEX},
-                {'label': "Niveau", 'type': int})
+                {'label': "Niveau", 'type': self.elo})
 
     def __str__(self):
         return f"{self.first_name} {self.family_name.upper()} ({self.elo})"
+
+    def __repr__(self):
+        return f"{self.first_name} {self.family_name.upper()}"
 
     def __hash__(self):
         return hash((self.first_name, self.family_name))

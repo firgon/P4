@@ -153,13 +153,13 @@ class Tournament(Serializable):
                           players,
                           rounds)
 
-    def __str__(self):
+    def __repr__(self):
         return self.name
 
-    def __repr__(self):
+    def __str__(self):
         return self.name + " à " + self.place \
                + " à partir du " + self.dates[0].strftime('%d/%m/%y') \
-               + f"\n({len(self.players)} joueurs inscrits)\n"
+               + f"\n({len(self.players)} joueurs inscrits)"
 
     def add_player(self, player: Player):
         self.players.append(player)
@@ -207,7 +207,7 @@ class Tournament(Serializable):
 
         return ranking
 
-    def get_last_round(self):
+    def get_last_round(self) -> Round:
         if self.rounds:
             return self.rounds[-1]
         else:

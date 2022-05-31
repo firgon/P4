@@ -1,7 +1,5 @@
 from views.abstractview import AbstractView
 from datetime import date, datetime
-from Model.player import Player
-from Model.tournament import Tournament
 
 
 class ConsoleView(AbstractView):
@@ -15,10 +13,9 @@ class ConsoleView(AbstractView):
 
         print("Manager de Tournoi d'échecs")
 
-        self.meta_commands = None
+        self.meta_commands = dict()
 
     def display_highest_level_menu(self, list_commands):
-        self.meta_commands = dict()
         for command in list_commands:
             shortcut = command['short'].upper()
             self.meta_commands["/" + str(shortcut)] = \
@@ -31,17 +28,20 @@ class ConsoleView(AbstractView):
 
         self.prompt_help()
 
-    def decorated(self, function):
+    def deco(self):
+        def decorator(function):
+            def wrapper(*args, **kwargs):
+                print("**********************************************")
+                print("**********************************************")
+                answer = function(*args, **kwargs)
+                if not self.check_meta_commands(answer):
+                    return answer
 
-        def wrapper(*args, **kwargs):
-            answer = function(*args, **kwargs)
-            if not self.check_meta_commands(answer):
-                return answer
-
-        return wrapper()
+            return wrapper
+        return decorator
 
     def display_menu(self, title, options_list, action_list):
-        print("**********************************************")
+        # print("**********************************************")
         print(title)
         self.prompt_action_choice(options_list, action_list)
 
@@ -60,23 +60,30 @@ class ConsoleView(AbstractView):
             self.display_table(item_list)
         else:
             for index, item in enumerate(item_list):
-                print(str(index) + ": " + str(item_list[index]))
+                if len(str(item)) < len(repr(item)):
+                    print(str(index) + ": " + str(item))
+                else:
+                    print(str(index) + ": " + repr(item))
 
     def display_table(self, dict_list):
         """method to display as a table a list of dict given in parameter"""
+        # table can't be less width than 50 chars
         min_width = 50
         keys = dict_list[0].keys()
         nb_column = len(keys)
 
+        # search for the max length of each column
         max_widths = dict()
         for key in keys:
             max_widths[key] = self.get_max_width(key, dict_list)
 
+        # then calculate the new minimum width of the table
         width_sum = 0
         for width in max_widths.values():
             width_sum += int(width)
 
-        width_more = round((min_width - width_sum)/nb_column)
+        # if width sum is lower than min width give extra width to each column
+        width_more = round(max(0, (min_width - width_sum))/nb_column)
 
         widths = dict()
         for key in keys:
@@ -85,6 +92,7 @@ class ConsoleView(AbstractView):
         # print keys line
         for key in keys:
             unused_width = widths[key] - len(key)
+            # fill unused width with - (header)
             print("- " + key + " "
                   + self.get_variable_length_string(unused_width, "-"),
                   end='')
@@ -94,11 +102,13 @@ class ConsoleView(AbstractView):
         for obj in dict_list:
             for key in keys:
                 unused_width = widths[key] - len(str(obj[key]))
+                # fill unused width with " " (normal line)
                 print("|  " + str(obj[key]) +
                       self.get_variable_length_string(unused_width),
                       end='')
             print("|")
 
+        # fill all column with "-" (table bottom)
         for key in keys:
             print(self.get_variable_length_string(widths[key]+3, "-"),
                   end='')
@@ -200,13 +210,12 @@ class ConsoleView(AbstractView):
             elif isinstance(info['type'], tuple):
                 choice = self.prompt_choice(info['type'], info['label'])
                 collected_infos.append(choice)
-            elif isinstance(info['type'], Player) \
-                    or isinstance(info['type'], Tournament):
-                collected_infos.append(info['type'])
             elif info['type'] == date:
                 collected_infos.append(self.ask_for_date(info['label']))
             elif info['type'] == list[date]:
                 collected_infos.append(self.ask_for_date_list(info['label']))
+            else:
+                collected_infos.append(info['type'])
 
         return_function(collected_infos)
 
