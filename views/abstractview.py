@@ -3,8 +3,8 @@ from abc import ABC, abstractmethod
 
 class AbstractView(ABC):
     """
-    This abstract class need all mandatory methods to display listing and menu
-    needed by the tournament manager controller
+    This abstract class define all mandatory methods to display listing
+    and menu needed by the tournament manager controller
 
     :parameter
         controller : the tournament manager Controller
@@ -12,7 +12,8 @@ class AbstractView(ABC):
 
     @abstractmethod
     def display_highest_level_menu(self, highest_level_commands):
-        """display highest level menu, must be available at any time
+        """highest level menu, must be available at any time
+
         :param highest_level_commands: is a list of dict like:
             {'short': "s", ->shortcut
              'long': "sauvegarder", ->a word (maybe to display on a button)
@@ -46,18 +47,31 @@ class AbstractView(ABC):
 
     @abstractmethod
     def display_list(self, item_list):
+        """display a simple list of items"""
         pass
 
     @abstractmethod
-    def display_table(self, dict_list):
+    def display_table(self, description: str, dict_list: list):
+        """display a table, with description and headers
+
+        :param description: a string to display to introduce table
+        :param dict_list: a list of dict, keys will be used as headers of table
+        """
         pass
 
     @abstractmethod
     def display_form(self, needed_infos: tuple, return_function):
         """Method to display a form
-        and return results to a function in parameter"""
+        and return results to a function in parameter
+        :param needed_infos: a tuple of dict as
+                                    'label': a string to display
+                                    'type' : indicates what should be returned
+        :param return_function:
+               the function where to send the list of needed datas
+        """
         pass
 
     @abstractmethod
     def log(self, message: str):
+        """a simple display message function"""
         pass

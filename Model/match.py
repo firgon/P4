@@ -7,28 +7,38 @@ class Match(Serializable):
     PLAYER = 0
     SCORE = 1
 
-    def __init__(self, player1: Player, player2: Player, score1=0, score2=0):
+    def __init__(self,
+                 player1: Player, player2: Player,
+                 score1=None, score2=None):
+
+        self.is_ended = (score1 is not None or score2 is not None)
+
         self.match = ([player1, score1], [player2, score2])
 
     def __str__(self):
-        return str(self.match[0][self.PLAYER]) \
-               + " Vs " \
-               + str(self.match[1][self.PLAYER])
+        return f"{self.match[0][Match.PLAYER]} VS " \
+               f"{self.match[1][Match.PLAYER]}   {self.get_score()}"
+
+    def __repr__(self):
+        return f"{self.match[0][Match.PLAYER]} VS " \
+               f"{self.match[1][Match.PLAYER]}"
 
     def set_score(self, score1: int, score2: int):
+        """record both score and set is-ended to True"""
         self.match[0][Match.SCORE] = score1
         self.match[1][Match.SCORE] = score2
+        self.is_ended = True
 
     def get_infos(self):
         """return a tuple with needed information to modify this Player"""
         return ({'label': "instance de classe", 'type': self},
                 {'label': f"Score pour {self.match[0][Match.PLAYER]}",
-                    'type': int},
+                 'type': int},
                 {'label': f"Score pour {self.match[1][Match.PLAYER]}",
                  'type': int})
 
     def get_players(self):
-        return self.match[0][self.PLAYER], self.match[1][self.PLAYER]
+        return self.match[0][Match.PLAYER], self.match[1][Match.PLAYER]
 
     def get_result(self, player):
         if player in self.match[0]:
@@ -36,13 +46,21 @@ class Match(Serializable):
         elif player in self.match[1]:
             return 1 - self.calculate_result()
         else:
-            print("Ce joueur ne participe pas à ce match !")
+            raise Exception("Ce joueur ne participe pas à ce match !")
 
-    def get_players(self):
-        return [self.match[0][Match.PLAYER], self.match[1][Match.PLAYER]]
+    def get_score(self) -> str:
+        """:returns a string with score or "En cours" if match is not ended"""
+        if not self.is_ended:
+            return "En cours"
+        else:
+            return f"{self.match[0][Match.SCORE]} - " \
+                   f"{self.match[1][Match.SCORE]}"
 
     def calculate_result(self):
         """return 1 if player1 wins, 0 if player2 wins, 0.5 if tied"""
+        if not self.is_ended:
+            return None
+
         if self.match[0][Match.SCORE] > self.match[1][Match.SCORE]:
             return 1
         elif self.match[0][Match.SCORE] < self.match[1][Match.SCORE]:
@@ -61,18 +79,12 @@ class Match(Serializable):
         }
 
     @staticmethod
-    def deserialize(serialized_instance, player_list):
+    def deserialize(serialized_instance, players_by_id: dict = None):
         player1_id = serialized_instance['player1']
         player2_id = serialized_instance['player2']
 
-        player1 = None
-        player2 = None
-
-        for player in player_list:
-            if player.id_in_db == player1_id:
-                player1 = player
-            elif player.id_in_db == player2_id:
-                player2 = player
+        player1 = players_by_id[player1_id]
+        player2 = players_by_id[player2_id]
 
         score1 = serialized_instance["score1"]
         score2 = serialized_instance["score2"]

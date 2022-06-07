@@ -15,7 +15,7 @@ class Serializable(ABC):
 
     @staticmethod
     @abstractmethod
-    def deserialize(serialized_instance, player_list):
+    def deserialize(serialized_instance, players_by_id: dict = None):
         """This method receive a dict of string and create a new instance
 
                 ::param serialized_instance (a dict of string)
@@ -24,12 +24,3 @@ class Serializable(ABC):
                         instead of recreate them
                 ::return a new instance of the object"""
         pass
-
-
-
-
-
-
-
-
-

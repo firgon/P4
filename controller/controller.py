@@ -2,29 +2,45 @@ from views.abstractview import AbstractView
 from Model.match import Match
 from Model.player import Player
 from Model.tournament import Tournament
-from Model.round import Round
 from controller.serializer import Serializer
-import types
+import random
 
 
 class Controller:
     """This class control the application
 
-    :param view : a view to interact with user
+    :param view : a view (derived from AbstractView) to interact with user
 
     :attributes :
         tournaments : a list of Tournaments
         players : a list of players
         active_tournament : the tournament that the user is currently modifying
-        active_player : the player that the user is currently modifying
+        active_menu : the menu that is currently active
+        serializer : a Serializer instance to handle tinyDB
     """
+
+    GENERAL_REPORTS = ["Tous les acteurs par Nom",
+                       "Tous les acteurs par Elo",
+                       "Tous les tournois"]
+    ACTORS_BY_NAME = 0
+    ACTORS_BY_ELO = 1
+    ALL_TOURNAMENTS = 2
+
+    TOURNAMENT_REPORTS = ["Classement par Points",
+                          "Classement par Nom",
+                          "Liste des rounds",
+                          "Liste des matchs"]
+    RANKING_BY_POINTS = 0
+    RANKING_BY_NAME = 1
+    ALL_ROUNDS = 2
+    ALL_MATCHES = 3
 
     def __init__(self, view: AbstractView):
         self.view = view
         self.tournaments = []
         self.all_players = []
         self.active_tournament = None
-        self.active_player = None
+        self.active_menu = None
         self.serializer = Serializer()
 
         """define commands that should be always available for user
@@ -49,7 +65,9 @@ class Controller:
 
         view.display_highest_level_menu(highest_level_commands)
 
+        # load datas from tinyDB
         self.load()
+        self.create_menu()
 
     def save(self):
         """ Save all players and tournaments in DB"""
@@ -61,13 +79,10 @@ class Controller:
         self.view.log(f"******** {len(tournaments_ids)} "
                       f"tournois sauvegardés *******")
 
-        self.create_menu()
-
     def exit(self):
-        """This method allows to go to one level up in the menu
-        """
-        if self.active_player is not None:
-            self.active_player = None
+        """This method allows to go to one level up in the menu"""
+        if self.active_menu is not None:
+            self.active_menu = None
         elif self.active_tournament is not None:
             self.active_tournament = None
 
@@ -83,8 +98,6 @@ class Controller:
         self.view.log(f"J'ai chargé une liste de "
                       f"{len(self.tournaments)} tournois ")
 
-        self.create_menu()
-
     def quit(self):
         """ Quit the Tournament Manager Project"""
         self.view.log('Manager de tournoi vous souhaite une bonne journée !!')
@@ -95,10 +108,19 @@ class Controller:
         collected datas will be send to create_tournament method"""
         self.view.display_form(Tournament.needed_infos, self.create_tournament)
 
-    def ask_for_player_datas(self):
+    def ask_for_player_datas(self, player: Player = None):
         """Method to ask view to display a form with player needed infos,
-        collected datas will be send to create_player method"""
-        self.view.display_form(Player.needed_infos, self.create_player)
+        to modify or create a player"""
+        if player is None:
+            self.view.display_form(Player.needed_infos, self.create_player)
+        else:
+            self.view.display_form(player.get_infos(), self.modify_player)
+
+    def ask_for_match_result(self, match: Match):
+        """Method to ask view to display a form with match needed infos,
+                to modify or create a player"""
+        self.view.display_form(match.get_infos(),
+                               self.modify_match)
 
     def create_tournament(self, datas):
         """create a new tournament instance according to received datas
@@ -127,54 +149,62 @@ class Controller:
         """
         choices = ["Créer et intégrer un nouveau joueur",
                    "Intégrer un joueur déjà en base",
-                   "Afficher le classement",
-                   "Lister les matchs en cours",
+                   "Lister les matchs du round en cours",
                    "Lancer un nouveau round",
                    "Saisir un résultat",
-                   "*** résultats automatiques ***"]
+                   "*** résultats automatiques ***",
+                   "Afficher des rapports"]
         functions_list = [self.ask_for_player_datas,
                           self.ask_for_player_choose,
-                          self.create_ranking,
                           self.list_match,
                           self.launch_new_round,
                           self.add_result,
-                          self.automatic_result]
+                          self.automatic_result,
+                          self.choose_tournament_report]
 
         self.view.display_menu("Tournoi " + str(self.active_tournament),
                                choices,
                                functions_list)
 
     def add_result(self):
+        self.active_menu = self.add_result
         active_round = self.active_tournament.get_last_round()
         if active_round.is_ended():
-            self.view.log("Il n'y a plus aucun match en cours.")
+            self.view.log("Ce round est terminé, "
+                          "vous ne pouvez plus le modifier.")
         else:
             self.view.display_item_choice("Quel résultat voulez-vous saisir ?",
                                           active_round.matches,
                                           self.ask_for_match_result)
+        self.create_menu()
 
-    def ask_for_match_result(self, match: Match):
-        self.view.display_form(match.get_infos(),
-                               self.modify_match)
-
-    def modify_match(self, datas):
+    def modify_match(self, datas: list):
+        """Modify a match with datas received in parameters
+        :param datas : a list as [0]-> match instance
+                                 [1]-> score1
+                                 [2]-> score2
+        """
         match = datas[0]
-        print(datas)
-        match.set_score(datas[1], datas[2])
-
-        self.add_result()
+        score1 = datas[1]
+        score2 = datas[2]
+        self.active_tournament.set_a_score(match, score1, score2)
 
     def automatic_result(self):
-        pass
-
-    def create_ranking(self):
-        ranking = self.active_tournament.get_ranking_to_display()
-
-        self.view.display_list(ranking)
+        """For test purpose, that function gives random scores
+        for each currently running match in the active tournament"""
+        active_round = self.active_tournament.get_last_round()
+        for match in active_round.matches:
+            if not match.is_ended:
+                self.active_tournament.set_a_score(match,
+                                                   random.randint(0, 4),
+                                                   random.randint(0, 4))
 
         self.create_menu()
 
     def list_match(self):
+        """Display the list of matches of the last round
+        of the active tournament
+        """
         last_round = self.active_tournament.get_last_round()
         if last_round is not None:
             self.view.log(last_round)
@@ -185,109 +215,27 @@ class Controller:
         self.create_menu()
 
     def launch_new_round(self):
-
+        """Check if a new round can be launched and launch it if possible"""
         # check if there is no not-ended round
         active_round = self.active_tournament.get_last_round()
         if active_round is not None and not active_round.is_ended():
             self.view.log("Vous ne pouvez pas lancer de nouveau Round, "
                           "tous les matchs ne sont pas terminés.")
-            return self.create_menu()
 
-        ranked_players = self.active_tournament.get_players_ranked()
-        already_played = self.active_tournament.already_played
-        is_first_round = (len(self.active_tournament.rounds) == 0)
+        elif len(self.active_tournament.rounds) == \
+                self.active_tournament.nb_rounds:
+            self.view.log("Vous ne pouvez pas lancer de nouveau Round, "
+                          "ce tournoi est terminé.")
 
-        possible_opponents = dict()
-
-        for player in ranked_players:
-            # all players can be opponents
-            possible_opponents[player] = list(ranked_players)
-            # but a player can't play against himself
-            possible_opponents[player].remove(player)
-            # but a player can't play against already played player
-            for opponent in already_played[player]:
-                possible_opponents[player].remove(opponent)
-
-        next_round = self.active_tournament.launch_new_round()
-
-        if next_round is None:
-            self.view.log("Ce tournoi est terminé !")
         else:
-            next_round = self.create_matches(next_round,
-                                             ranked_players,
-                                             possible_opponents,
-                                             is_first_round)
-
-            self.view.log(next_round)
+            new_round = self.active_tournament.launch_new_round()
+            self.view.log(new_round)
 
         return self.create_menu()
 
-    def create_matches(self, next_round: Round,
-                       ranked_players: list,
-                       possible_opponents: dict,
-                       is_first_round: bool):
-        """Method to find the best matches
-        and return them in a list given in parameters
-
-        :param next_round Round containing all created matches
-        :param ranked_players (a list of players,
-                    ordered by rank in the tournament)
-        :param possible_opponents a dict as
-                    player: list of possible opponents
-        :param is_first_round indicates if this turn is the first
-                    of the tournament
-        """
-
-        if len(ranked_players) < 2:
-            # if ranked_players = 0 ou 1 stop searching
-            return next_round
-
-        new_match = None
-
-        if len(ranked_players) == 2:
-            # if ranked_players = 2 associate them
-            new_match = Match(ranked_players[0],
-                              ranked_players[1])
-            next_round.add_match(new_match)
-            return next_round
-
-        # if a player as a unique possible opponent, create the match
-        for player in ranked_players:
-            if len(possible_opponents[player]) == 1:
-                opponent = possible_opponents[player][0]
-                new_match = Match(player, opponent)
-                break
-
-        if new_match is None:
-            player = ranked_players[0]
-            # for first round 1st player match with 1st of second half players
-            # for next rounds 1st player match with 2nd player (if possible)
-            if is_first_round:
-                nb_players = len(ranked_players)
-                opponent_ranking = round(nb_players / 2)
-                opponent = ranked_players[opponent_ranking]
-                new_match = Match(player, opponent)
-            else:
-                for opponent in ranked_players:
-                    if opponent in possible_opponents[player]:
-                        new_match = Match(player, opponent)
-                        break
-
-        if new_match is None:
-            print("Cela ne devrait pas se produire!")
-        else:
-            next_round.add_match(new_match)
-            # remove player in new match from all lists
-            for player in new_match.get_players():
-                ranked_players.remove(player)
-                possible_opponents.pop(player)
-                for possible in possible_opponents.values():
-                    possible.remove(player)
-
-            return self.create_matches(next_round, ranked_players,
-                                       possible_opponents, is_first_round)
-
     def ask_for_player_choose(self):
+        """display a list of players in DB but not in active Tournament,
+        to add one in the active tournament"""
         possible_players = []
 
         for player in self.all_players:
@@ -301,17 +249,11 @@ class Controller:
         self.ask_for_player_choose()
 
     def add_player(self, player: Player):
+        """Add a player to active tournament"""
         self.view.log(f"OK, j'inscris {player} "
                       f"au tournoi {self.active_tournament}")
 
         self.active_tournament.add_player(player)
-
-    def ask_for_confirm_player_datas(self, player: Player):
-        """create a menu when the user is inside a player
-        (active_player is not None)
-        """
-
-        self.view.display_form(player.get_infos(), self.modify_player)
 
     def modify_player(self, infos):
         """modify player according to received infos
@@ -326,32 +268,31 @@ class Controller:
         self.choose_player()
 
     def choose_tournament(self):
-
+        """display a list of tournament, to choose one to open"""
         self.view.display_item_choice("Quel tournoi voulez-vous ouvrir ?",
                                       self.tournaments,
                                       self.open_tournament)
 
-    def choose_player(self, players=None):
+    def choose_player(self, players: list = None):
+        """Ask view to display a list of players (All players by default),
+        to choose one to be modified"""
 
         if players is None:
             players = self.all_players
 
         self.view.display_item_choice("Quel joueur voulez-vous modifier ?",
                                       players,
-                                      self.ask_for_confirm_player_datas)
+                                      self.ask_for_player_datas)
 
     def open_tournament(self, tournament: Tournament):
+        """set tournament in parameter active and update menu"""
         self.active_tournament = tournament
 
         self.create_menu()
 
-    def open_player(self, index: int):
-        self.active_player = self.all_players[index]
-
-        self.create_menu()
-
     def create_menu(self):
-        if self.active_tournament is None and self.active_player is None:
+        """display menu : Main menu, Tournament Menu or Active Menu"""
+        if self.active_tournament is None and self.active_menu is None:
             self.view.display_menu("Menu principal",
                                    ["Créer et ouvrir un tournoi",
                                     "Ouvrir un tournoi existant",
@@ -362,31 +303,84 @@ class Controller:
                                     self.choose_tournament,
                                     self.ask_for_player_datas,
                                     self.choose_player,
-                                    self.choose_report])
-        elif self.active_player is None:
+                                    self.choose_general_report])
+        elif self.active_menu is None:
             self.create_tournament_menu()
+        else:
+            self.active_menu()
 
-    def choose_report(self):
+    def choose_tournament_report(self):
+        """display available tournament reports"""
+        self.active_menu = self.choose_tournament_report
         self.view.display_item_choice("Les rapports disponibles :",
-                                      ["Les acteurs par Nom",
-                                       "Les acteurs par Elo",
-                                       "Les tournois"],
-                                      self.create_report)
+                                      Controller.TOURNAMENT_REPORTS,
+                                      self.create_tournament_report)
 
-    def create_report(self, choice: str):
-        if choice == "Les acteurs par Elo":
+    def create_tournament_report(self, choice: str):
+        """create a displayable TOURNAMENT report,
+        depending on the choice in parameter
+
+                :param choice : could be Controller.RANKING_BY_POINTS
+                                         Controller.RANKING_BY_NAME
+                                         Controller.ALL_ROUNDS or
+                                         Controller.ALL_MATCHES
+        """
+        description = str(self.active_tournament)
+        description += "\n"
+        description += choice + "\n"
+
+        if choice == \
+                Controller.TOURNAMENT_REPORTS[Controller.RANKING_BY_POINTS]:
+            players_dict = self.active_tournament.get_ranking_to_display()
+
+            self.view.display_table(description, players_dict)
+
+        elif choice == \
+                Controller.TOURNAMENT_REPORTS[Controller.RANKING_BY_NAME]:
+            players_dict = self.active_tournament.get_ranking_to_display(False)
+            self.view.display_table(description, players_dict)
+
+        elif choice == Controller.TOURNAMENT_REPORTS[Controller.ALL_ROUNDS]:
+            rounds_dict = self.active_tournament.get_all_rounds_to_display()
+            self.view.display_table(description, rounds_dict)
+
+        elif choice == Controller.TOURNAMENT_REPORTS[Controller.ALL_MATCHES]:
+            matches_dict = self.active_tournament.get_all_matches_to_display()
+            self.view.display_table(description, matches_dict)
+
+        self.choose_tournament_report()
+
+    def choose_general_report(self):
+        """display available general reports"""
+        self.active_menu = self.choose_general_report
+        self.view.display_item_choice("Les rapports disponibles :",
+                                      Controller.GENERAL_REPORTS,
+                                      self.create_general_report)
+
+    def create_general_report(self, choice: str):
+        """create a displayable GENERAL report,
+        depending on the choice in parameter
+
+        :param choice : could be Controller.ACTORS_BY_ELO
+                                 Controller.ACTORS_BY_NAME or
+                                 Controller.ALL_TOURNAMENTS
+        """
+        description = "Manager de Tournoi d'Échecs\n\n"
+        description += choice + "\n"
+
+        if choice == Controller.GENERAL_REPORTS[Controller.ACTORS_BY_ELO]:
             players = sorted(self.all_players,
                              key=lambda x: x.elo,
                              reverse=True)
             players_dict = self.create_player_dict_list(players)
-            self.view.display_list(players_dict)
-        elif choice == "Les acteurs par Nom":
+            self.view.display_table(description, players_dict)
+        elif choice == Controller.GENERAL_REPORTS[Controller.ACTORS_BY_NAME]:
             players = sorted(self.all_players,
                              key=lambda x: x.family_name.title(),
                              reverse=False)
             players_dict = self.create_player_dict_list(players)
-            self.view.display_list(players_dict)
-        elif choice == "Les tournois":
+            self.view.display_table(description, players_dict)
+        elif choice == Controller.GENERAL_REPORTS[Controller.ALL_TOURNAMENTS]:
             tournaments_to_display = []
 
             for index, tournament in enumerate(self.tournaments):
@@ -398,16 +392,18 @@ class Controller:
                                          }
                 tournaments_to_display.append(tournament_to_display)
 
-            self.view.display_list(tournaments_to_display)
+            self.view.display_table(description, tournaments_to_display)
 
-        self.choose_report()
+        self.choose_general_report()
 
-    def create_player_dict_list(self, players_list) -> list:
+    @staticmethod
+    def create_player_dict_list(players_list) -> list:
+        """create a list of dict with displayable datas on all players"""
         players_to_display = []
 
         for index, player in enumerate(players_list):
             player_to_display = {
-                "N°": index+1,
+                "N°": index + 1,
                 "Nom": repr(player),
                 "Date de naissance": player.birth_date.strftime('%d/%m/%y'),
                 "Sexe": player.get_sex(),
@@ -416,44 +412,3 @@ class Controller:
             players_to_display.append(player_to_display)
 
         return players_to_display
-
-class Action:
-    """
-    Class that associate a label (:str) and an action (:function)
-    """
-
-    def __init__(self, label: str, callback):
-        if not isinstance(label, str):
-            raise TypeError(f"{label} is not a valid string")
-        if not isinstance(callback, types.FunctionType):
-            raise TypeError(f"{callback} is not a function")
-        self.label = label
-        self.callback = callback
-
-    def __str__(self):
-        return self.label
-
-    def act(self):
-        return self.callback()
-
-
-class MultiChoiceAction(Action):
-    """
-        Class that associate a label_list (list of string)
-        and an action (:function) that will be act
-    """
-
-    def __init__(self, label: list, callback):
-        super().__init__()
-        if not isinstance(label, list):
-            raise TypeError(f"{label} is not a list")
-        if not isinstance(callback, types.FunctionType):
-            raise TypeError(f"{callback} is not function")
-        self.label = label
-        self.callback = callback
-
-    def __str__(self):
-        return [self.label]
-
-    def act(self, index: int):
-        return self.callback(self.label[index])

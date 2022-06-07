@@ -28,20 +28,21 @@ class ConsoleView(AbstractView):
 
         self.prompt_help()
 
-    def deco(self):
-        def decorator(function):
+    def decorator_factory(self):
+        def deco(function):
             def wrapper(*args, **kwargs):
-                print("**********************************************")
+                print()
                 print("**********************************************")
                 answer = function(*args, **kwargs)
                 if not self.check_meta_commands(answer):
                     return answer
 
             return wrapper
-        return decorator
+        return deco
 
     def display_menu(self, title, options_list, action_list):
-        # print("**********************************************")
+        print()
+        print("**********************************************")
         print(title)
         self.prompt_action_choice(options_list, action_list)
 
@@ -56,17 +57,14 @@ class ConsoleView(AbstractView):
         as a table if it is a list of dict"""
         if len(item_list) == 0:
             print("La liste est vide, tapez /EXIT pour sortir de là.")
-        elif isinstance(item_list[0], dict):
-            self.display_table(item_list)
         else:
             for index, item in enumerate(item_list):
-                if len(str(item)) < len(repr(item)):
-                    print(str(index) + ": " + str(item))
-                else:
-                    print(str(index) + ": " + repr(item))
+                print(str(index) + ": " + str(item))
 
-    def display_table(self, dict_list):
+    def display_table(self, description, dict_list):
         """method to display as a table a list of dict given in parameter"""
+        print(description)
+
         # table can't be less width than 50 chars
         min_width = 50
         keys = dict_list[0].keys()
@@ -113,14 +111,17 @@ class ConsoleView(AbstractView):
             print(self.get_variable_length_string(widths[key]+3, "-"),
                   end='')
 
-        print()
+        print("\n")
 
-    def prompt_choice(self, options_list, question="Quel est votre choix ?"):
+    def prompt_choice(self, options_list, question="Quel est votre choix ?")\
+            -> int:
         """ Method to display options in the console
         and return a int corresponding to the choice
 
         :param options_list : list of string option
         :param question: (optional) question of the input
+
+        :return int corresponding to the chosen option in list
         """
         print(question)
 
@@ -143,6 +144,7 @@ class ConsoleView(AbstractView):
 
         else:
             self.act_meta_commands(answer)
+            return self.prompt_choice(options_list, question)
 
     def prompt_action_choice(self,
                              options_list,

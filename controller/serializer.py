@@ -59,10 +59,15 @@ class Serializer:
     def load_tournaments(self, players_list):
         tournaments = []
 
+        players_by_id = dict()
+
+        for player in players_list:
+            players_by_id[player.id_in_db] = player
+
         serialized_tournaments = self.tournaments_table.all()
 
         for serialized_tournament in serialized_tournaments:
             tournaments.append(Tournament.deserialize(serialized_tournament,
-                                                      players_list))
+                                                      players_by_id))
 
         return tournaments
