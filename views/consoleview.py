@@ -128,6 +128,7 @@ class ConsoleView(AbstractView):
         self.display_list(options_list)
 
         answer = input("Tapez votre réponse: ")
+        print()
 
         if not self.check_meta_commands(answer):
             try:
@@ -233,6 +234,7 @@ class ConsoleView(AbstractView):
                 value = default
         else:
             value = input(label + " : ")
+        print()
         return value
 
     def ask_for_int(self, label: str, default=None):
@@ -252,15 +254,17 @@ class ConsoleView(AbstractView):
         print("Plusieurs valeurs peuvent être renseignées\n"
               "tapez simplement ENTREE pour finir")
 
-        index = 1
         while True:
-            new_date = self.ask_for_date("(" + str(index) + ") " + label)
+            num_value = len(values)+1
+            new_date = self.ask_for_date("(" + str(num_value) + ") " + label)
 
             if new_date == '':
-                break
+                if num_value > 1:
+                    break
+                else:
+                    continue
             else:
                 values.append(new_date)
-                index += 1
 
         return values
 
@@ -268,6 +272,7 @@ class ConsoleView(AbstractView):
         print("Écrivez la date au format JJ/MM/AA")
 
         value = input(label + " : ")
+        print()
 
         if value == '':
             return value
