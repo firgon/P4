@@ -212,13 +212,13 @@ class Tournament(Serializable):
         possible_opponents = dict()
 
         for player in ranked_players:
-            # all players can be opponents
-            possible_opponents[player] = list(ranked_players)
+            # all players not already played can be opponents
+            possible_opponents[player] = \
+                list(set(ranked_players)
+                     - set(self.already_played[player]))
+
             # but a player can't play against himself
             possible_opponents[player].remove(player)
-            # but a player can't play against already played player
-            for opponent in self.already_played[player]:
-                possible_opponents[player].remove(opponent)
 
         return self.create_matches(new_round,
                                    ranked_players,
@@ -277,6 +277,7 @@ class Tournament(Serializable):
 
         if new_match is None:
             print("Cela ne devrait pas se produire!")
+            return next_round
         else:
             next_round.add_match(new_match)
             # remove player in new match from all lists

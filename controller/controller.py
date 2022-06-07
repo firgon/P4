@@ -149,6 +149,7 @@ class Controller:
         """
         choices = ["Créer et intégrer un nouveau joueur",
                    "Intégrer un joueur déjà en base",
+                   "Modifier un joueur",
                    "Lister les matchs du round en cours",
                    "Lancer un nouveau round",
                    "Saisir un résultat",
@@ -156,6 +157,7 @@ class Controller:
                    "Afficher des rapports"]
         functions_list = [self.ask_for_player_datas,
                           self.ask_for_player_choose,
+                          self.choose_player,
                           self.list_match,
                           self.launch_new_round,
                           self.add_result,
@@ -227,6 +229,10 @@ class Controller:
             self.view.log("Vous ne pouvez pas lancer de nouveau Round, "
                           "ce tournoi est terminé.")
 
+        elif len(self.active_tournament.players) < 2:
+            self.view.log("Vous ne pouvez pas lancer de nouveau Round, "
+                          "il n'y a pas suffisamment de joueurs.")
+
         else:
             new_round = self.active_tournament.launch_new_round()
             self.view.log(new_round)
@@ -236,6 +242,8 @@ class Controller:
     def ask_for_player_choose(self):
         """display a list of players in DB but not in active Tournament,
         to add one in the active tournament"""
+        self.active_menu = self.ask_for_player_choose
+
         possible_players = []
 
         for player in self.all_players:
@@ -246,7 +254,7 @@ class Controller:
                                       possible_players,
                                       self.add_player)
         #     iterate
-        self.ask_for_player_choose()
+        self.create_menu()
 
     def add_player(self, player: Player):
         """Add a player to active tournament"""
@@ -265,7 +273,7 @@ class Controller:
         player.sex = infos[3]
         player.elo = infos[4]
 
-        self.choose_player()
+        self.create_menu()
 
     def choose_tournament(self):
         """display a list of tournament, to choose one to open"""
@@ -273,12 +281,16 @@ class Controller:
                                       self.tournaments,
                                       self.open_tournament)
 
-    def choose_player(self, players: list = None):
-        """Ask view to display a list of players (All players by default),
-        to choose one to be modified"""
+    def choose_player(self):
+        """Ask view to display a list of players
+        (all or from active tournament), to choose one to be modified
+        """
+        self.active_menu = self.choose_player
 
-        if players is None:
+        if self.active_tournament is None:
             players = self.all_players
+        else:
+            players = self.active_tournament.players
 
         self.view.display_item_choice("Quel joueur voulez-vous modifier ?",
                                       players,
