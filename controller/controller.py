@@ -195,6 +195,9 @@ class Controller:
         """For test purpose, that function gives random scores
         for each currently running match in the active tournament"""
         active_round = self.active_tournament.get_last_round()
+        if active_round is None:
+            self.view.log("Il n'y a pas de round en cours.")
+            return
         for match in active_round.matches:
             if not match.is_ended:
                 self.active_tournament.set_a_score(match,

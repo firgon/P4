@@ -65,6 +65,10 @@ class ConsoleView(AbstractView):
         """method to display as a table a list of dict given in parameter"""
         print(description)
 
+        if not dict_list:
+            print("Rien à Afficher\n")
+            return
+
         # table can't be less width than 50 chars
         min_width = 50
         keys = dict_list[0].keys()
