@@ -121,7 +121,7 @@ class Tournament(Serializable):
             serialized_already_played[player.id_in_db] = []
             for already_played in players:
                 serialized_already_played[player.id_in_db].\
-                    append(already_played)
+                    append(already_played.id_in_db)
 
         serialized_tournament = {'name': self.name, 'place': self.place,
                                  'dates': serialized_dates,

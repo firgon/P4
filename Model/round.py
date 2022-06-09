@@ -76,28 +76,20 @@ class Round(Serializable):
         for match in self.matches:
             serialized_matches.append(match.serialize())
 
-        if self.end is None:
-            return {'name': self.name,
-                    'matches': serialized_matches,
-                    'start': self.start.strftime("%Y-%m-%d %H:%M:%S"),
-                    'end': None
-                    }
-        else:
-            return {'name': self.name,
-                    'matches': serialized_matches,
-                    'start': self.start.strftime("%Y-%m-%d %H:%M:%S"),
-                    'end': self.end.strftime("%Y-%m-%d %H:%M:%S")
-                    }
+        return {'name': self.name,
+                'matches': serialized_matches,
+                'start': self.start.strftime("%Y-%m-%d %H:%M:%S"),
+                'end': None if self.end is None else self.end.strftime(
+                    "%Y-%m-%d %H:%M:%S")
+                }
 
     @staticmethod
     def deserialize(serialized_instance, players_by_id: dict = None):
         name = serialized_instance['name']
         serialized_matches = serialized_instance['matches']
-        if 'start' in serialized_instance:
-            start = datetime.strptime(serialized_instance['start'],
-                                      "%Y-%m-%d %H:%M:%S")
-        else:
-            start = None
+        start = datetime.strptime(serialized_instance['start'],
+                                  "%Y-%m-%d %H:%M:%S")
+
         if serialized_instance['end'] is not None:
             end = datetime.strptime(serialized_instance['end'],
                                     "%Y-%m-%d %H:%M:%S")
