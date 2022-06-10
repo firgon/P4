@@ -1,5 +1,5 @@
-from Model import Serializable
-from Model.match import Match
+from model import Serializable
+from model.match import Match
 from datetime import datetime
 
 

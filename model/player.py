@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from Model import Serializable
+from model import Serializable
 
 
 class Player(Serializable):

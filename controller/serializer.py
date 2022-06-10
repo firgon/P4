@@ -1,6 +1,6 @@
 from tinydb import TinyDB
-from Model.player import Player
-from Model.tournament import Tournament
+from model.player import Player
+from model.tournament import Tournament
 
 
 class Serializer:

@@ -1,8 +1,8 @@
-from Model import Serializable
+from model import Serializable
 from datetime import date, datetime
-from Model.player import Player
-from Model.round import Round
-from Model.match import Match
+from model.player import Player
+from model.round import Round
+from model.match import Match
 
 
 class Tournament(Serializable):

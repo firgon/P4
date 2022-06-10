@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 class Serializable(ABC):
     """This abstract class provides 2 abstracts method
-        to serialize and deserialize objects of the Model
+        to serialize and deserialize objects of the model
         in Tournament Manager Project
     """
 

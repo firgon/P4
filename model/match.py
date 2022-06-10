@@ -1,5 +1,5 @@
-from Model import Serializable
-from Model.player import Player
+from model import Serializable
+from model.player import Player
 
 
 class Match(Serializable):

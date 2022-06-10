@@ -1,7 +1,7 @@
 from views.abstractview import AbstractView
-from Model.match import Match
-from Model.player import Player
-from Model.tournament import Tournament
+from model.match import Match
+from model.player import Player
+from model.tournament import Tournament
 from controller.serializer import Serializer
 import random
 
