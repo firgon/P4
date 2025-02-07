@@ -28,3 +28,5 @@ Afin de vous assurer que le projet respecte les standards de programmation pytho
 Placez-vous dans le répertoire d'installation de votre application et tapez sur votre invite de commande:
 
 ```flake8 --format=html --htmldir=flake-report```
+
+This project is tested with BrowserStack.
